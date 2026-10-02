@@ -3,6 +3,8 @@ ARG base_image
 
 FROM ${golang_image} AS builder
 WORKDIR /tmp
+RUN mkdir -p /tmp/workspace && chmod 0777 /tmp/workspace
+WORKDIR /tmp/workspace
 ENV GO111MODULE=on GOPROXY=direct CGO_ENABLED=1 GOFIPS140=certified GO_BUILD_TAGS=strictfipsruntime,no_openssl
 COPY . ./
 RUN make build-metrics
@@ -13,5 +15,5 @@ RUN microdnf install -y ca-certificates openssl-libs \
 ENV GODEBUG=fips140=auto
 COPY ./misc/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 WORKDIR /app
-COPY --from=builder /tmp/cni-metrics-helper /app/
+COPY --from=builder /tmp/workspace/cni-metrics-helper /app/
 ENTRYPOINT ["/app/cni-metrics-helper", "--cloudwatch=false"]
