@@ -288,15 +288,15 @@ docker-metrics:    ## Build metrics helper agent Docker image.
 
 ## Build the CNI images with the Red Hat system-crypto toolchain.
 fips-docker: setup-ec2-sdk-override
-	docker build $(FIPS_DOCKER_ARGS) -f scripts/dockerfiles/Dockerfile.fips \
+	BUILDAH_LAYERS=true docker build $(FIPS_DOCKER_ARGS) -f scripts/dockerfiles/Dockerfile.fips \
 		-t "$(IMAGE_NAME)-fips" .
 
 fips-docker-init:
-	docker build $(FIPS_DOCKER_ARGS) -f scripts/dockerfiles/Dockerfile.init.fips \
+	BUILDAH_LAYERS=true docker build $(FIPS_DOCKER_ARGS) -f scripts/dockerfiles/Dockerfile.init.fips \
 		-t "$(INIT_IMAGE_NAME)-fips" .
 
 fips-docker-metrics:
-	docker build $(FIPS_DOCKER_ARGS) -f scripts/dockerfiles/Dockerfile.metrics.fips \
+	BUILDAH_LAYERS=true docker build $(FIPS_DOCKER_ARGS) -f scripts/dockerfiles/Dockerfile.metrics.fips \
 		-t "$(METRICS_IMAGE_NAME)-fips" .
 
 fips-all: fips-docker fips-docker-init fips-docker-metrics
