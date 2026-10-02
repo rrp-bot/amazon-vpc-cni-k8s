@@ -8,13 +8,16 @@ WORKDIR /go/src/github.com/aws/amazon-vpc-cni-k8s
 ARG TARGETARCH
 ENV GO111MODULE=on \
     GOPROXY=direct \
-    CGO_ENABLED=1
+    CGO_ENABLED=1 \
+    GOFIPS140=certified \
+    GO_BUILD_TAGS=strictfipsruntime,no_openssl
 COPY . ./
 RUN make build-aws-vpc-cni && make build-linux
 
 FROM ${base_image}
 RUN microdnf install -y ca-certificates iproute iptables openssl-libs util-linux-core \
     && microdnf clean all
+ENV GODEBUG=fips140=auto
 WORKDIR /app
 COPY --from=builder /go/src/github.com/aws/amazon-vpc-cni-k8s/aws-cni \
     /go/src/github.com/aws/amazon-vpc-cni-k8s/misc/10-aws.conflist \
