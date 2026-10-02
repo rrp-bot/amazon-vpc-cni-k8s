@@ -42,6 +42,20 @@ See [here](./docs/iam-policy.md) for required IAM policies.
 * `make docker-unit-tests` uses a docker container to run all unit tests.
 * Builds for all build and test actions run in docker containers based on `.go-version` unless a different `GOLANG_IMAGE` tag is passed in.
 
+### FIPS-oriented container build
+
+The optional `make fips-all` profile builds the CNI, init, and metrics images
+with the Red Hat Go system-crypto toolchain and UBI minimal runtime. Configure
+`FIPS_GOLANG_IMAGE` and `FIPS_BASE_IMAGE` to approved immutable image digests;
+the defaults are only convenient placeholders. The runtime must run on a node
+with FIPS mode enabled, and the toolchain/runtime versions and OpenSSL module
+must be separately verified against the organization’s required CMVP boundary.
+
+This profile does not by itself confer FIPS 140 validation, generate SBOMs or
+SLSA attestations, or replace cluster-level FIPS validation. It also does not
+add an eBPF build: this repository’s CNI images contain no eBPF source or
+CO-RE artifact.
+
 ## Components
 
   There are 2 components:

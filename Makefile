@@ -14,8 +14,9 @@
 
 .PHONY: all dist check clean \
 		lint format check-format vet docker-vet \
-		build-linux docker docker-init \
-		unit-test unit-test-race build-docker-test docker-func-test \
+			build-linux docker docker-init \
+			fips-docker fips-docker-init fips-docker-metrics fips-all \
+			unit-test unit-test-race build-docker-test docker-func-test \
 		build-metrics docker-metrics \
 		metrics-unit-test docker-metrics-test
 
@@ -73,7 +74,10 @@ GOARCH = $(TARGETARCH)
 
 # For the requested build, these are the set of Go specific build environment variables.
 export GOOS = linux
-export CGO_ENABLED = 0
+CGO_ENABLED ?= 0
+export CGO_ENABLED
+GOEXPERIMENT ?=
+export GOEXPERIMENT
 # NOTE: Provided for local toolchains that require explicit module feature flag.
 export GO111MODULE = on
 export GOPROXY = direct
@@ -119,7 +123,16 @@ DOCKER_BUILD_FLAGS_CNI_INIT = --build-arg golang_image="$(GOLANG_IMAGE)" \
 DOCKER_BUILD_FLAGS_CNI_METRICS = --build-arg golang_image="$(GOLANG_IMAGE)" \
 					  --build-arg base_image="$(BASE_IMAGE_CNI_METRICS)"	\
 					  --network=host \
-	  		          $(DOCKER_ARGS)
+			          $(DOCKER_ARGS)
+
+# FIPS builds use the Red Hat Go toolchain and UBI runtime. Set both image
+# values to approved, immutable digests in the release environment.
+FIPS_GOLANG_IMAGE ?= registry.access.redhat.com/ubi9/go-toolset:latest
+FIPS_BASE_IMAGE ?= registry.access.redhat.com/ubi9/ubi-minimal:latest
+FIPS_DOCKER_ARGS = --build-arg golang_image="$(FIPS_GOLANG_IMAGE)" \
+			   --build-arg base_image="$(FIPS_BASE_IMAGE)" \
+			   --network=host \
+			   $(DOCKER_ARGS)
 
 MULTI_PLATFORM_BUILD_TARGETS = 	linux/amd64,linux/arm64
 
@@ -270,6 +283,21 @@ docker-metrics:    ## Build metrics helper agent Docker image.
 		-t "$(METRICS_IMAGE_NAME)" \
 		.
 	@echo "Built Docker image \"$(METRICS_IMAGE_NAME)\""
+
+## Build the CNI images with the Red Hat system-crypto toolchain.
+fips-docker: setup-ec2-sdk-override
+	docker build $(FIPS_DOCKER_ARGS) -f scripts/dockerfiles/Dockerfile.fips \
+		-t "$(IMAGE_NAME)-fips" .
+
+fips-docker-init:
+	docker build $(FIPS_DOCKER_ARGS) -f scripts/dockerfiles/Dockerfile.init.fips \
+		-t "$(INIT_IMAGE_NAME)-fips" .
+
+fips-docker-metrics:
+	docker build $(FIPS_DOCKER_ARGS) -f scripts/dockerfiles/Dockerfile.metrics.fips \
+		-t "$(METRICS_IMAGE_NAME)-fips" .
+
+fips-all: fips-docker fips-docker-init fips-docker-metrics
 
 ##@ Run metrics helper Unit Tests
 

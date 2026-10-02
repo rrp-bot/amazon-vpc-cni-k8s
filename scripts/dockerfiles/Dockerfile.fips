@@ -1,0 +1,27 @@
+ARG golang_image
+ARG base_image
+
+# The Red Hat Go toolchain supplies system-crypto support. The exact image
+# must be pinned by the release pipeline to the approved RHEL content set.
+FROM ${golang_image} AS builder
+WORKDIR /go/src/github.com/aws/amazon-vpc-cni-k8s
+ARG TARGETARCH
+ENV GO111MODULE=on \
+    GOPROXY=direct \
+    CGO_ENABLED=1 \
+    GOEXPERIMENT=systemcrypto
+COPY . ./
+RUN make build-aws-vpc-cni && make build-linux
+
+FROM ${base_image}
+RUN microdnf install -y ca-certificates iproute iptables openssl-libs util-linux-core \
+    && microdnf clean all
+WORKDIR /app
+COPY --from=builder /go/src/github.com/aws/amazon-vpc-cni-k8s/aws-cni \
+    /go/src/github.com/aws/amazon-vpc-cni-k8s/misc/10-aws.conflist \
+    /go/src/github.com/aws/amazon-vpc-cni-k8s/misc/eni-max-pods.txt \
+    /go/src/github.com/aws/amazon-vpc-cni-k8s/aws-k8s-agent \
+    /go/src/github.com/aws/amazon-vpc-cni-k8s/grpc-health-probe \
+    /go/src/github.com/aws/amazon-vpc-cni-k8s/egress-cni \
+    /go/src/github.com/aws/amazon-vpc-cni-k8s/aws-vpc-cni /app/
+ENTRYPOINT ["/app/aws-vpc-cni"]
