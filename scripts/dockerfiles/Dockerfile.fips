@@ -12,7 +12,8 @@ ENV GO111MODULE=on \
     GOPROXY=direct \
     CGO_ENABLED=1 \
     GOFIPS140=certified \
-    GO_BUILD_TAGS=strictfipsruntime,no_openssl
+    GO_BUILD_TAGS=strictfipsruntime,no_openssl \
+    GOFLAGS=-buildvcs=false
 COPY . ./
 RUN make build-aws-vpc-cni && make build-linux
 
