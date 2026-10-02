@@ -2,7 +2,7 @@ ARG golang_image
 ARG base_image
 
 FROM ${golang_image} AS builder
-WORKDIR /tmp/amazon-vpc-cni-k8s
+WORKDIR /tmp
 ENV GO111MODULE=on GOPROXY=direct CGO_ENABLED=1 GOFIPS140=certified GO_BUILD_TAGS=strictfipsruntime,no_openssl
 COPY . ./
 RUN make plugins && make debug-script && make build-aws-vpc-cni-init
@@ -12,7 +12,7 @@ RUN microdnf install -y ca-certificates iproute iptables openssl-libs util-linux
     && microdnf clean all
 ENV GODEBUG=fips140=auto
 WORKDIR /init
-COPY --from=builder /tmp/amazon-vpc-cni-k8s/core-plugins/ \
-    /tmp/amazon-vpc-cni-k8s/aws-cni-support.sh \
-    /tmp/amazon-vpc-cni-k8s/aws-vpc-cni-init /init/
+COPY --from=builder /tmp/core-plugins/ \
+    /tmp/aws-cni-support.sh \
+    /tmp/aws-vpc-cni-init /init/
 CMD ["/init/aws-vpc-cni-init"]
